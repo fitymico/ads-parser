@@ -16,7 +16,15 @@ class ListingParser:
     def __init__(self, client: HttpClient):
         self.client = client
 
-    def _build_url(self, city: Optional[str], mode: str = "list", page: int = 1) -> str:
+    def _build_url(
+        self,
+        city: Optional[str],
+        mode: str = "list",
+        page: int = 1,
+        category: Optional[str] = None,
+        subcategory: Optional[str] = None,
+        district_id: Optional[int] = None
+    ) -> str:
         """
         Построить URL для списка объявлений
 
@@ -24,11 +32,20 @@ class ListingParser:
             city: slug города
             mode: "gallery" для топ, "list" для обычных
             page: номер страницы
+            category: категория (например 'nedvizhimost')
+            subcategory: подкатегория (например 'arenda-nedvizhimosti')
+            district_id: ID района
         """
         if city:
             base = f"{BASE_URL}/{city}/search/"
         else:
             base = f"{BASE_URL}/search/"
+
+        # Добавляем категорию и подкатегорию в путь
+        if category:
+            base += f"{category}/"
+            if subcategory:
+                base += f"{subcategory}/"
 
         # gallery = топ объявления, list = обычные
         if mode == "gallery":
@@ -36,19 +53,33 @@ class ListingParser:
         else:
             params = "?lt=list&cur=2"
 
+        # Добавляем район
+        if district_id:
+            params += f"&rd[]={district_id}"
+
         if page > 1:
             return f"{base}{params}&page={page}"
         return f"{base}{params}"
 
-    def get_total_pages(self, city: Optional[str], mode: str = "list") -> int:
+    def get_total_pages(
+        self,
+        city: Optional[str],
+        mode: str = "list",
+        category: Optional[str] = None,
+        subcategory: Optional[str] = None,
+        district_id: Optional[int] = None
+    ) -> int:
         """
         Определить количество страниц
 
         Args:
             city: slug города
             mode: "gallery" для топ, "list" для обычных
+            category: категория
+            subcategory: подкатегория
+            district_id: ID района
         """
-        url = self._build_url(city, mode)
+        url = self._build_url(city, mode, 1, category, subcategory, district_id)
         html = self.client.get(url)
 
         if not html:
@@ -80,7 +111,15 @@ class ListingParser:
 
         return min(max_page, MAX_PAGES)
 
-    def get_listing_urls(self, city: Optional[str], mode: str = "list", page: int = 1) -> list[tuple[str, bool]]:
+    def get_listing_urls(
+        self,
+        city: Optional[str],
+        mode: str = "list",
+        page: int = 1,
+        category: Optional[str] = None,
+        subcategory: Optional[str] = None,
+        district_id: Optional[int] = None
+    ) -> list[tuple[str, bool]]:
         """
         Получить URL объявлений со страницы списка
 
@@ -88,11 +127,14 @@ class ListingParser:
             city: slug города
             mode: "gallery" для топ, "list" для обычных
             page: номер страницы
+            category: категория
+            subcategory: подкатегория
+            district_id: ID района
 
         Returns:
             Список кортежей (URL, is_top)
         """
-        url = self._build_url(city, mode, page)
+        url = self._build_url(city, mode, page, category, subcategory, district_id)
         html = self.client.get(url)
 
         if not html:
@@ -141,18 +183,28 @@ class ListingParser:
 
         return results
 
-    def get_all_urls(self, city: Optional[str], max_pages: Optional[int] = None) -> list[str]:
+    def get_all_urls(
+        self,
+        city: Optional[str],
+        max_pages: Optional[int] = None,
+        category: Optional[str] = None,
+        subcategory: Optional[str] = None,
+        district_id: Optional[int] = None
+    ) -> list[tuple[str, bool]]:
         """
         Получить все URL объявлений города
 
         Args:
             city: Город (slug) или None для всех
             max_pages: Максимум страниц для парсинга
+            category: категория
+            subcategory: подкатегория
+            district_id: ID района
 
         Returns:
-            Список всех URL объявлений
+            Список кортежей (URL, is_top)
         """
-        total_pages = self.get_total_pages(city)
+        total_pages = self.get_total_pages(city, "list", category, subcategory, district_id)
 
         if max_pages:
             total_pages = min(total_pages, max_pages)
@@ -160,7 +212,7 @@ class ListingParser:
         all_urls = []
 
         for page in range(1, total_pages + 1):
-            urls = self.get_listing_urls(city, page)
+            urls = self.get_listing_urls(city, "list", page, category, subcategory, district_id)
             all_urls.extend(urls)
 
             if not urls:

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Параллельный конвейер обработки объявлений
 
@@ -35,6 +36,7 @@ from parser.client import HttpClient
 from parser.listing import ListingParser
 from parser.detail import DetailParser
 from mapper.cities import get_city_region
+from parser.categories import get_categories, get_districts, get_known_districts
 
 
 # ============================================================
@@ -88,57 +90,129 @@ def url_parser_worker(
     skip_top: bool = False,
     request_delay: float = 0.15,
     max_ads: int = 0,
+    use_deep_scan: bool = True,
 ):
-    """Собирает URL объявлений"""
+    """
+    Собирает URL объявлений
+
+    Если use_deep_scan=True, итерирует по комбинациям категория/подкатегория/район
+    для обхода лимита в 50 страниц на поиск.
+    """
     client = HttpClient()
     listing_parser = ListingParser(client)
     count = 0
+    seen_urls = set()  # Для дедупликации
+    categories = get_categories()
+
+    def should_stop():
+        return max_ads and count >= max_ads
+
+    def add_url(url, region, is_top):
+        nonlocal count
+        if url not in seen_urls:
+            seen_urls.add(url)
+            url_queue.put((url, region, is_top))
+            count += 1
+            return True
+        return False
 
     try:
         for region, cities in regions_to_parse.items():
+            if should_stop():
+                break
+
             for city in cities:
+                if should_stop():
+                    break
+
                 print(f"[URLs] {city}...")
 
-                if not skip_top:
-                    pages = listing_parser.get_total_pages(city, "gallery")
+                # Получаем районы города
+                districts = get_known_districts(city)
+                if not districts:
+                    # Пробуем загрузить с сайта
+                    districts = get_districts(city)
+                district_ids = list(districts.keys()) if districts else [None]
+
+                if use_deep_scan:
+                    # Глубокий скан: по категориям × подкатегориям × районам
+                    total_combos = sum(len(subcats) for subcats in categories.values()) * len(district_ids)
+                    combo_num = 0
+
+                    for cat, subcats in categories.items():
+                        if should_stop():
+                            break
+
+                        for subcat in subcats:
+                            if should_stop():
+                                break
+
+                            for district_id in district_ids:
+                                if should_stop():
+                                    break
+
+                                combo_num += 1
+                                district_name = districts.get(district_id, '') if district_id else 'все'
+                                print(f"[URLs] {city}/{cat}/{subcat} (р-н: {district_name}) [{combo_num}/{total_combos}]")
+
+                                # Топовые объявления
+                                if not skip_top:
+                                    pages = listing_parser.get_total_pages(city, "gallery", cat, subcat, district_id)
+                                    if max_pages:
+                                        pages = min(pages, max_pages)
+                                    for page in range(1, pages + 1):
+                                        if should_stop():
+                                            break
+                                        for url, _ in listing_parser.get_listing_urls(city, "gallery", page, cat, subcat, district_id):
+                                            add_url(url, region, True)
+                                            if should_stop():
+                                                break
+                                        time.sleep(request_delay)
+
+                                # Обычные объявления
+                                pages = listing_parser.get_total_pages(city, "list", cat, subcat, district_id)
+                                if max_pages:
+                                    pages = min(pages, max_pages)
+                                for page in range(1, pages + 1):
+                                    if should_stop():
+                                        break
+                                    for url, _ in listing_parser.get_listing_urls(city, "list", page, cat, subcat, district_id):
+                                        add_url(url, region, False)
+                                        if should_stop():
+                                            break
+                                    time.sleep(request_delay)
+                else:
+                    # Простой скан (старое поведение)
+                    if not skip_top:
+                        pages = listing_parser.get_total_pages(city, "gallery")
+                        if max_pages:
+                            pages = min(pages, max_pages)
+                        for page in range(1, pages + 1):
+                            if should_stop():
+                                break
+                            for url, _ in listing_parser.get_listing_urls(city, "gallery", page):
+                                add_url(url, region, True)
+                                if should_stop():
+                                    break
+                            time.sleep(request_delay)
+
+                    pages = listing_parser.get_total_pages(city, "list")
                     if max_pages:
                         pages = min(pages, max_pages)
                     for page in range(1, pages + 1):
-                        for url, _ in listing_parser.get_listing_urls(city, "gallery", page):
-                            url_queue.put((url, region, True))
-                            count += 1
-                            if max_ads and count >= max_ads:
+                        if should_stop():
+                            break
+                        for url, _ in listing_parser.get_listing_urls(city, "list", page):
+                            add_url(url, region, False)
+                            if should_stop():
                                 break
-                        if max_ads and count >= max_ads:
-                            break
                         time.sleep(request_delay)
-                    if max_ads and count >= max_ads:
-                        break
-
-                if max_ads and count >= max_ads:
-                    break
-
-                pages = listing_parser.get_total_pages(city, "list")
-                if max_pages:
-                    pages = min(pages, max_pages)
-                for page in range(1, pages + 1):
-                    for url, _ in listing_parser.get_listing_urls(city, "list", page):
-                        url_queue.put((url, region, False))
-                        count += 1
-                        if max_ads and count >= max_ads:
-                            break
-                    if max_ads and count >= max_ads:
-                        break
-                    time.sleep(request_delay)
-
-            if max_ads and count >= max_ads:
-                break
 
         stats['urls_found'] = count
     finally:
         client.close()
         url_queue.put(POISON_PILL)
-        print(f"[URLs] Готово: {count} URL")
+        print(f"[URLs] Готово: {count} уникальных URL")
 
 
 # ============================================================
@@ -377,13 +451,14 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `nulled_ads` WHERE `ads_id_import` = {
 # Главный процесс
 # ============================================================
 
-def run_pipeline(regions_to_parse: dict, config: PipelineConfig, max_pages: int = None, skip_top: bool = False):
+def run_pipeline(regions_to_parse: dict, config: PipelineConfig, max_pages: int = None, skip_top: bool = False, use_deep_scan: bool = True):
     """Запуск конвейера"""
     print("=" * 60)
     print("ПАРАЛЛЕЛЬНЫЙ КОНВЕЙЕР")
     print("=" * 60)
     print(f"Data workers: {config.data_workers}")
     print(f"Delay: {config.request_delay}s")
+    print(f"Режим сканирования: {'глубокий (категории × районы)' if use_deep_scan else 'простой'}")
     print(f"Превью: quality={config.preview_quality}, max={config.preview_max_size}px → preview/")
     print(f"Остальные: crop={config.crop_bottom_pixels}px, quality={config.compress_quality}, max={config.compress_max_size}px → images/")
     if config.max_ads:
@@ -403,7 +478,7 @@ def run_pipeline(regions_to_parse: dict, config: PipelineConfig, max_pages: int 
 
     # URL Parser
     p = Process(target=url_parser_worker, args=(
-        regions_to_parse, url_queue, stats, max_pages, skip_top, config.request_delay, config.max_ads
+        regions_to_parse, url_queue, stats, max_pages, skip_top, config.request_delay, config.max_ads, use_deep_scan
     ))
     p.start()
     processes.append(p)
@@ -454,7 +529,7 @@ def main():
     parser.add_argument("-p", "--max-pages", type=int)
     parser.add_argument("--skip-top", action="store_true")
     parser.add_argument("--test", action="store_true")
-    parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--delay", type=float, default=0.15)
     parser.add_argument("--preview-quality", type=int, default=90, help="Качество превью (default: 90)")
     parser.add_argument("--quality", type=int, default=75, help="Качество остальных (default: 75)")
@@ -462,6 +537,13 @@ def main():
     parser.add_argument("--user-id", type=int, default=4173)
     parser.add_argument("-d", "--images-dir", default="./images")
     parser.add_argument("-o", "--output", default="./export.sql")
+
+    # Режим сканирования
+    scan_group = parser.add_mutually_exclusive_group()
+    scan_group.add_argument("--deep-scan", action="store_true", default=True,
+                           help="Глубокий скан: категории × подкатегории × районы (по умолчанию)")
+    scan_group.add_argument("--simple-scan", action="store_true",
+                           help="Простой скан: только первые 50 страниц на город")
 
     args = parser.parse_args()
 
@@ -476,10 +558,13 @@ def main():
         sql_file=args.output,
     )
 
+    use_deep_scan = not args.simple_scan
+
     if args.test:
         args.city = "donetsk"
         args.max_pages = 1
         config.max_ads = 10  # Лимит для теста
+        use_deep_scan = False  # Для теста используем простой режим
 
     if args.city:
         region = get_city_region(args.city)
@@ -492,7 +577,7 @@ def main():
     else:
         regions = CITIES
 
-    run_pipeline(regions, config, args.max_pages, args.skip_top)
+    run_pipeline(regions, config, args.max_pages, args.skip_top, use_deep_scan)
 
 
 if __name__ == "__main__":
