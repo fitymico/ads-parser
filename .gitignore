@@ -1,0 +1,24 @@
+# Virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Images and exports
+images/
+images_test*/
+output/
+*.sql
+!src/**/*.sql
+
+# Backups
+*.zip
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
