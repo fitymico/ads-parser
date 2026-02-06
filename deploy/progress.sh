@@ -160,8 +160,8 @@ else
 fi
 
 echo -e "  ┌────────────────────────────────────┐"
-echo -e "  │  Обработано ID:    $(printf '%8s' $PROCESSED)       │"
-echo -e "  │  SQL записей:      $(printf '%8s' $TOTAL_SQL)       │"
+echo -e "  │  Обработано ID:    $(printf '%8s' $PROCESSED)        │"
+echo -e "  │  SQL записей:      $(printf '%8s' $TOTAL_SQL)        │"
 echo -e "  └────────────────────────────────────┘"
 
 if [ $SQL_RESTORED -gt 0 ]; then
@@ -185,10 +185,10 @@ IMAGES_COUNT=$(find "$DATA_DIR/images/images/" -name '*.webp' 2>/dev/null | wc -
 TOTAL_IMAGES=$((PREVIEW_COUNT + IMAGES_COUNT))
 
 echo -e "  ┌────────────────────────────────────┐"
-echo -e "  │  Превью:           $(printf '%8s' $PREVIEW_COUNT)       │"
-echo -e "  │  Полноразмерные:   $(printf '%8s' $IMAGES_COUNT)       │"
+echo -e "  │  Превью:           $(printf '%8s' $PREVIEW_COUNT)        │"
+echo -e "  │  Полноразмерные:   $(printf '%8s' $IMAGES_COUNT)        │"
 echo -e "  │  ──────────────────────────────────│"
-echo -e "  │  ВСЕГО:            $(printf '%8s' $TOTAL_IMAGES)       │"
+echo -e "  │  ВСЕГО:            $(printf '%8s' $TOTAL_IMAGES)        │"
 echo -e "  └────────────────────────────────────┘"
 echo ""
 
