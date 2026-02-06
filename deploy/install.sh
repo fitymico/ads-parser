@@ -28,8 +28,8 @@ error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 # =============================================================================
 INSTALL_DIR="${INSTALL_DIR:-/opt/ads-parser}"
 DATA_DIR="${DATA_DIR:-/data}"
-REPO_URL="${REPO_URL:-}"
-RAW_URL="${RAW_URL:-}"
+REPO_URL="${REPO_URL:-https://github.com/fitymico/ads-parser.git}"
+RAW_URL="${RAW_URL:-https://raw.githubusercontent.com/fitymico/ads-parser/main}"
 WORKERS="${WORKERS:-6}"
 DELAY="${DELAY:-0.1}"
 PARSER_USER="${PARSER_USER:-parser}"
@@ -75,7 +75,6 @@ download_files() {
 echo -e "${CYAN}"
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                    ADS-PARSER INSTALLER                      ║"
-echo "║                      ads-parser                               ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
