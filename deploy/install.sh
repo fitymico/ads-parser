@@ -306,17 +306,15 @@ case "$1" in
         [ ! -f "$LOG_FILE" ] && LOG_FILE="$DATA_DIR/pipeline_v2.log"
         TOTAL_CITIES=51
         if [ -f "$LOG_FILE" ]; then
-            CURRENT=$(grep -E '^\[URLs\]' "$LOG_FILE" 2>/dev/null | tail -1)
+            # Берём только строки с прогрессом [X/Y]
+            CURRENT=$(grep '^\[URLs\].*\[.*/.*/\]' "$LOG_FILE" 2>/dev/null | tail -1)
             if [ -n "$CURRENT" ]; then
-                CITY=$(echo "$CURRENT" | sed 's/\[URLs\] //' | cut -d'/' -f1)
+                CITY=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1)
                 PROGRESS=$(echo "$CURRENT" | grep -o '\[[0-9]*/[0-9]*\]')
-                CAT=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/ (р-н.*//')
-                # Подсчёт городов (без grep -P для совместимости)
-                COMPLETED_CITIES=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | sed 's/\[URLs\] //' | cut -d'/' -f1 | sort -u | wc -l | xargs)
-                COMPLETED_CITIES=$((COMPLETED_CITIES - 1))
-                [ $COMPLETED_CITIES -lt 0 ] && COMPLETED_CITIES=0
-                CITY_NUM=$((COMPLETED_CITIES + 1))
-                echo -e "  Город:     ${Y}${B}$CITY${N} ${C}[$CITY_NUM/$TOTAL_CITIES]${N}"
+                CAT=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/SKIP //' | sed 's/ (р-н.*//')
+                # Подсчёт уникальных городов (только строки с прогрессом)
+                CITY_NUM=$(grep '^\[URLs\].*\[.*/.*/\]' "$LOG_FILE" 2>/dev/null | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1 | sort -u | wc -l)
+                echo -e "  Город:     ${Y}${B}$CITY${N} [$CITY_NUM/$TOTAL_CITIES]"
                 echo -e "  Категория: $CAT"
                 echo -e "  Прогресс:  ${B}$PROGRESS${N}"
             fi
