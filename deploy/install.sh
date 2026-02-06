@@ -304,13 +304,19 @@ case "$1" in
         echo -e "${G}▶ ТЕКУЩАЯ ЗАДАЧА${N}"
         LOG_FILE="$DATA_DIR/logs/pipeline.log"
         [ ! -f "$LOG_FILE" ] && LOG_FILE="$DATA_DIR/pipeline_v2.log"
+        TOTAL_CITIES=51
         if [ -f "$LOG_FILE" ]; then
             CURRENT=$(grep -E '^\[URLs\]' "$LOG_FILE" 2>/dev/null | tail -1)
             if [ -n "$CURRENT" ]; then
                 CITY=$(echo "$CURRENT" | grep -oP '^\[URLs\] \K[^/]+')
                 PROGRESS=$(echo "$CURRENT" | grep -oP '\[\d+/\d+\]')
                 CAT=$(echo "$CURRENT" | grep -oP '^\[URLs\] [^(]+' | sed 's/\[URLs\] //')
-                echo -e "  Город:     ${Y}$CITY${N}"
+                # Подсчёт городов
+                COMPLETED_CITIES=$(grep -oP '^\[URLs\] \K[^/]+' "$LOG_FILE" 2>/dev/null | sort -u | wc -l | xargs)
+                COMPLETED_CITIES=$((COMPLETED_CITIES - 1))
+                [ $COMPLETED_CITIES -lt 0 ] && COMPLETED_CITIES=0
+                CITY_NUM=$((COMPLETED_CITIES + 1))
+                echo -e "  Город:     ${Y}${B}$CITY${N} ${C}($CITY_NUM/$TOTAL_CITIES)${N}"
                 echo -e "  Категория: $CAT"
                 echo -e "  Прогресс:  ${B}$PROGRESS${N}"
             fi
