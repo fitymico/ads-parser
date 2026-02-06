@@ -1,24 +1,50 @@
-# Virtual environment
-venv/
+# Python
 __pycache__/
-*.pyc
-
-# Images and exports
-images/
-images_test*/
-output/
-*.sql
-!src/**/*.sql
-
-# Backups
-*.zip
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+.venv/
+env/
 
 # IDE
-.vscode/
 .idea/
+.vscode/
+*.swp
+*.swo
+*~
 
-# Logs
+# Данные парсера
+images/
+output/
+*.sql
+processed_ids.txt
+image_map.json
+
+# Логи
 *.log
+logs/
+
+# Тестовые файлы
+test_wm/
+*.wm
 
 # OS
 .DS_Store
+Thumbs.db
+
+# Временные файлы
+*.tmp
+*.bak
+/tmp/
+
+# Конфигурация
+config.env
+.env
+
+# Бэкапы
+backup/
+*.backup
+*.zip
