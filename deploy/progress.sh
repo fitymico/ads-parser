@@ -52,17 +52,21 @@ echo ""
 echo -e "${G}▶ ТЕКУЩАЯ ЗАДАЧА${N}"
 LOG_FILE="$DATA_DIR/logs/pipeline.log"
 [ ! -f "$LOG_FILE" ] && LOG_FILE="$DATA_DIR/pipeline_v2.log"
+TOTAL_CITIES=51
 
 if [ -f "$LOG_FILE" ]; then
-    CURRENT=$(grep -E '^\[URLs\]' "$LOG_FILE" 2>/dev/null | tail -1)
+    # Берём только строки с прогрессом [X/Y]
+    CURRENT=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep -E '\[[0-9]+/[0-9]+\]' | tail -1)
     if [ -n "$CURRENT" ]; then
-        CITY=$(echo "$CURRENT" | grep -oP '^\[URLs\] \K[^/]+')
-        PROGRESS=$(echo "$CURRENT" | grep -oP '\[\d+/\d+\]')
-        CURR_NUM=$(echo "$PROGRESS" | grep -oP '\d+' | head -1)
-        TOTAL_NUM=$(echo "$PROGRESS" | grep -oP '\d+' | tail -1)
-        CAT_PATH=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/ (р-н.*//' | sed "s/$CITY\///")
+        CITY=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1)
+        PROGRESS=$(echo "$CURRENT" | grep -o '\[[0-9]*/[0-9]*\]')
+        CURR_NUM=$(echo "$PROGRESS" | tr -d '[]' | cut -d'/' -f1)
+        TOTAL_NUM=$(echo "$PROGRESS" | tr -d '[]' | cut -d'/' -f2)
+        CAT_PATH=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/SKIP //' | sed 's/ (р-н.*//')
+        # Подсчёт уникальных городов
+        CITY_NUM=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep -E '\[[0-9]+/[0-9]+\]' | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1 | sort -u | wc -l)
 
-        echo -e "  Город:       ${Y}${B}$CITY${N}"
+        echo -e "  Город:       ${Y}${B}$CITY${N} [$CITY_NUM/$TOTAL_CITIES]"
         echo -e "  Категория:   $CAT_PATH"
 
         # Прогресс-бар
