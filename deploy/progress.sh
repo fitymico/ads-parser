@@ -159,10 +159,10 @@ else
     TOTAL_SQL=$((SQL_HOME + SQL_V2))
 fi
 
-echo -e "  ┌─────────────────────────────────────────┐"
-echo -e "  │  Обработано ID:       ${B}$(printf '%7s' $PROCESSED)${N}          │"
-echo -e "  │  SQL записей:         ${B}$(printf '%7s' $TOTAL_SQL)${N}          │"
-echo -e "  └─────────────────────────────────────────┘"
+echo -e "  ┌────────────────────────────────────┐"
+echo -e "  │  Обработано ID:    $(printf '%8s' $PROCESSED)     │"
+echo -e "  │  SQL записей:      $(printf '%8s' $TOTAL_SQL)     │"
+echo -e "  └────────────────────────────────────┘"
 
 if [ $SQL_RESTORED -gt 0 ]; then
     echo -e "    ├─ export_restored.sql: $SQL_RESTORED"
@@ -184,12 +184,12 @@ PREVIEW_COUNT=$(find "$DATA_DIR/images/preview/" -name '*.webp' 2>/dev/null | wc
 IMAGES_COUNT=$(find "$DATA_DIR/images/images/" -name '*.webp' 2>/dev/null | wc -l | xargs)
 TOTAL_IMAGES=$((PREVIEW_COUNT + IMAGES_COUNT))
 
-echo -e "  ┌─────────────────────────────────────────┐"
-echo -e "  │  Превью (1-е фото):   ${B}$(printf '%7s' $PREVIEW_COUNT)${N}          │"
-echo -e "  │  Полноразмерные:      ${B}$(printf '%7s' $IMAGES_COUNT)${N}          │"
-echo -e "  │  ─────────────────────────────────      │"
-echo -e "  │  ВСЕГО:               ${B}$(printf '%7s' $TOTAL_IMAGES)${N}          │"
-echo -e "  └─────────────────────────────────────────┘"
+echo -e "  ┌────────────────────────────────────┐"
+echo -e "  │  Превью:           $(printf '%8s' $PREVIEW_COUNT)     │"
+echo -e "  │  Полноразмерные:   $(printf '%8s' $IMAGES_COUNT)     │"
+echo -e "  │  ────────────────────────────────  │"
+echo -e "  │  ВСЕГО:            $(printf '%8s' $TOTAL_IMAGES)     │"
+echo -e "  └────────────────────────────────────┘"
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
