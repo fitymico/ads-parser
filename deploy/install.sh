@@ -305,6 +305,12 @@ case "$1" in
         LOG_FILE="$DATA_DIR/logs/pipeline.log"
         [ ! -f "$LOG_FILE" ] && LOG_FILE="$DATA_DIR/pipeline_v2.log"
         TOTAL_CITIES=51
+        # Проверяем skip-cities из запущенного процесса
+        SKIP_LIST=$(ps aux 2>/dev/null | grep 'pipeline.py' | grep -v grep | grep -o '\-\-skip-cities [^ ]*' | cut -d' ' -f2)
+        if [ -n "$SKIP_LIST" ]; then
+            SKIPPED=$(echo "$SKIP_LIST" | tr ',' '\n' | wc -l)
+            TOTAL_CITIES=$((51 - SKIPPED))
+        fi
         if [ -f "$LOG_FILE" ]; then
             # Берём только строки с прогрессом [X/Y]
             CURRENT=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep -E '\[[0-9]+/[0-9]+\]' | tail -1)
@@ -314,7 +320,8 @@ case "$1" in
                 CAT=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/SKIP //' | sed 's/ (р-н.*//')
                 # Подсчёт уникальных городов (только строки с прогрессом)
                 CITY_NUM=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep -E '\[[0-9]+/[0-9]+\]' | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1 | sort -u | wc -l)
-                echo -e "  Город:     ${Y}${B}$CITY${N} [$CITY_NUM/$TOTAL_CITIES]"
+                REMAINING=$((TOTAL_CITIES - CITY_NUM))
+                echo -e "  Город:     ${Y}${B}$CITY${N} [$CITY_NUM/$TOTAL_CITIES] (осталось: $REMAINING)"
                 echo -e "  Категория: $CAT"
                 echo -e "  Прогресс:  ${B}$PROGRESS${N}"
             fi
