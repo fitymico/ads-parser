@@ -16,22 +16,23 @@
 
 ## Установка
 
-### Быстрая установка (на сервере)
+### Одной командой (Ubuntu/Debian)
 
 ```bash
-# Клонируем репозиторий
-git clone https://github.com/fitymico/ads-parser.git
-cd ads-parser
-
-# Устанавливаем зависимости
-pip3 install requests beautifulsoup4 lxml Pillow numpy scipy
+curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/install.sh | sudo bash
 ```
 
-### Полная установка (systemd сервисы)
+С параметрами:
+```bash
+curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/install.sh | sudo WORKERS=8 DELAY=0.05 bash
+```
+
+### Ручная установка
 
 ```bash
-# От root на голом Ubuntu/Debian
-sudo ./deploy/install.sh
+git clone https://github.com/fitymico/ads-parser.git
+cd ads-parser
+pip3 install requests beautifulsoup4 lxml Pillow numpy scipy
 ```
 
 ## Использование
