@@ -306,7 +306,7 @@ case "$1" in
         [ ! -f "$LOG_FILE" ] && LOG_FILE="$DATA_DIR/pipeline_v2.log"
         TOTAL_CITIES=51
         # Проверяем skip-cities из запущенного процесса
-        SKIP_LIST=$(ps aux 2>/dev/null | grep 'pipeline.py' | grep -v grep | grep -o '\-\-skip-cities [^ ]*' | cut -d' ' -f2)
+        SKIP_LIST=$(ps aux 2>/dev/null | grep 'pipeline.py' | grep -v grep | grep -o '\-\-skip-cities [^ ]*' | head -1 | cut -d' ' -f2)
         if [ -n "$SKIP_LIST" ]; then
             SKIPPED=$(echo "$SKIP_LIST" | tr ',' '\n' | wc -l)
             TOTAL_CITIES=$((51 - SKIPPED))
