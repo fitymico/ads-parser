@@ -176,6 +176,24 @@ ads-parser progress
 ads-parser logs
 ads-parser health
 ads-parser backup
+ads-parser uninstall
+```
+
+## Удаление
+
+### Через CLI (после установки)
+```bash
+ads-parser uninstall
+```
+
+### Одной командой (без установки)
+```bash
+curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/uninstall.sh | sudo bash
+```
+
+С сохранением данных:
+```bash
+curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/uninstall.sh | sudo KEEP_DATA=1 bash
 ```
 
 ## Лицензия
