@@ -3,7 +3,7 @@
 # Полное удаление ads-parser
 #
 # Использование:
-#   curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/uninstall.sh | sudo bash
+#   sudo bash deploy/uninstall.sh
 #
 # Или локально:
 #   sudo ./uninstall.sh

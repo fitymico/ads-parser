@@ -4,7 +4,8 @@
       "WebFetch(domain:pypi.org)",
       "Bash(python3.12:*)",
       "WebFetch(domain:dnr.red)",
-      "WebFetch(domain:nominatim.openstreetmap.org)"
+      "WebFetch(domain:nominatim.openstreetmap.org)",
+      "Bash(pip3 install:*)"
     ]
   }
 }

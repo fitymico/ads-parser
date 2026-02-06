@@ -3,7 +3,7 @@
 # Установка и развёртывание ads-parser на голом Ubuntu/Debian сервере
 #
 # Использование:
-#   curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/install.sh | sudo bash
+#   sudo bash deploy/install.sh
 #
 # С параметрами:
 #   curl -sSL ... | sudo WORKERS=8 DELAY=0.05 bash
@@ -28,8 +28,8 @@ error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 # =============================================================================
 INSTALL_DIR="${INSTALL_DIR:-/opt/ads-parser}"
 DATA_DIR="${DATA_DIR:-/data}"
-REPO_URL="${REPO_URL:-https://github.com/fitymico/ads-parser.git}"
-RAW_URL="${RAW_URL:-https://raw.githubusercontent.com/fitymico/ads-parser/main}"
+REPO_URL="${REPO_URL:-}"
+RAW_URL="${RAW_URL:-}"
 WORKERS="${WORKERS:-6}"
 DELAY="${DELAY:-0.1}"
 PARSER_USER="${PARSER_USER:-parser}"
@@ -38,7 +38,7 @@ PARSER_USER="${PARSER_USER:-parser}"
 # Функции
 # =============================================================================
 download_files() {
-    log "Загрузка файлов с GitHub..."
+    log "Загрузка файлов..."
 
     local files=(
         "src/pipeline.py"
@@ -75,7 +75,7 @@ download_files() {
 echo -e "${CYAN}"
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                    ADS-PARSER INSTALLER                      ║"
-echo "║               github.com/fitymico/ads-parser                 ║"
+echo "║                      ads-parser                               ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 

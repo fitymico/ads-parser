@@ -19,19 +19,17 @@
 ### Одной командой (Ubuntu/Debian)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/install.sh | sudo bash
+sudo bash deploy/install.sh
 ```
 
 С параметрами:
 ```bash
-curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/install.sh | sudo WORKERS=8 DELAY=0.05 bash
+sudo WORKERS=8 DELAY=0.05 bash deploy/install.sh
 ```
 
 ### Ручная установка
 
 ```bash
-git clone https://github.com/fitymico/ads-parser.git
-cd ads-parser
 pip3 install requests beautifulsoup4 lxml Pillow numpy scipy
 ```
 
@@ -186,14 +184,14 @@ ads-parser uninstall
 ads-parser uninstall
 ```
 
-### Одной командой (без установки)
+### Скриптом
 ```bash
-curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/uninstall.sh | sudo bash
+sudo bash deploy/uninstall.sh
 ```
 
 С сохранением данных:
 ```bash
-curl -sSL https://raw.githubusercontent.com/fitymico/ads-parser/main/deploy/uninstall.sh | sudo KEEP_DATA=1 bash
+sudo KEEP_DATA=1 bash deploy/uninstall.sh
 ```
 
 ## Лицензия
