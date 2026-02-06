@@ -307,13 +307,13 @@ case "$1" in
         TOTAL_CITIES=51
         if [ -f "$LOG_FILE" ]; then
             # Берём только строки с прогрессом [X/Y]
-            CURRENT=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep '\[[0-9]*/[0-9]*\]' | tail -1)
+            CURRENT=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep -E '\[[0-9]+/[0-9]+\]' | tail -1)
             if [ -n "$CURRENT" ]; then
                 CITY=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1)
                 PROGRESS=$(echo "$CURRENT" | grep -o '\[[0-9]*/[0-9]*\]')
                 CAT=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/SKIP //' | sed 's/ (р-н.*//')
                 # Подсчёт уникальных городов (только строки с прогрессом)
-                CITY_NUM=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep '\[[0-9]*/[0-9]*\]' | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1 | sort -u | wc -l)
+                CITY_NUM=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep -E '\[[0-9]+/[0-9]+\]' | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1 | sort -u | wc -l)
                 echo -e "  Город:     ${Y}${B}$CITY${N} [$CITY_NUM/$TOTAL_CITIES]"
                 echo -e "  Категория: $CAT"
                 echo -e "  Прогресс:  ${B}$PROGRESS${N}"
