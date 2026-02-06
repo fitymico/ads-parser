@@ -308,15 +308,15 @@ case "$1" in
         if [ -f "$LOG_FILE" ]; then
             CURRENT=$(grep -E '^\[URLs\]' "$LOG_FILE" 2>/dev/null | tail -1)
             if [ -n "$CURRENT" ]; then
-                CITY=$(echo "$CURRENT" | grep -oP '^\[URLs\] \K[^/]+')
-                PROGRESS=$(echo "$CURRENT" | grep -oP '\[\d+/\d+\]')
-                CAT=$(echo "$CURRENT" | grep -oP '^\[URLs\] [^(]+' | sed 's/\[URLs\] //')
-                # Подсчёт городов
-                COMPLETED_CITIES=$(grep -oP '^\[URLs\] \K[^/]+' "$LOG_FILE" 2>/dev/null | sort -u | wc -l | xargs)
+                CITY=$(echo "$CURRENT" | sed 's/\[URLs\] //' | cut -d'/' -f1)
+                PROGRESS=$(echo "$CURRENT" | grep -o '\[[0-9]*/[0-9]*\]')
+                CAT=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/ (р-н.*//')
+                # Подсчёт городов (без grep -P для совместимости)
+                COMPLETED_CITIES=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | sed 's/\[URLs\] //' | cut -d'/' -f1 | sort -u | wc -l | xargs)
                 COMPLETED_CITIES=$((COMPLETED_CITIES - 1))
                 [ $COMPLETED_CITIES -lt 0 ] && COMPLETED_CITIES=0
                 CITY_NUM=$((COMPLETED_CITIES + 1))
-                echo -e "  Город:     ${Y}${B}$CITY${N} ${C}($CITY_NUM/$TOTAL_CITIES)${N}"
+                echo -e "  Город:     ${Y}${B}$CITY${N} ${C}[$CITY_NUM/$TOTAL_CITIES]${N}"
                 echo -e "  Категория: $CAT"
                 echo -e "  Прогресс:  ${B}$PROGRESS${N}"
             fi
