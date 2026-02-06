@@ -268,15 +268,117 @@ case "$1" in
         tail -f "$DATA_DIR/logs/pipeline.log"
         ;;
     progress)
-        echo "=== ПРОГРЕСС ==="
-        if [ -f "$DATA_DIR/logs/pipeline.log" ]; then
-            tail -5 "$DATA_DIR/logs/pipeline.log"
+        # Цвета
+        C='\033[0;36m'  # Cyan
+        G='\033[0;32m'  # Green
+        Y='\033[1;33m'  # Yellow
+        R='\033[0;31m'  # Red
+        B='\033[1m'     # Bold
+        N='\033[0m'     # Reset
+
+        echo ""
+        echo -e "${C}╔══════════════════════════════════════════════════════════════════════╗${N}"
+        echo -e "${C}║${B}                    ADS-PARSER PROGRESS                               ${N}${C}║${N}"
+        echo -e "${C}║${N}                    $(date '+%Y-%m-%d %H:%M:%S')                              ${C}║${N}"
+        echo -e "${C}╚══════════════════════════════════════════════════════════════════════╝${N}"
+        echo ""
+
+        # Процессы
+        echo -e "${G}▶ ПРОЦЕССЫ${N}"
+        PARSER_PID=$(pgrep -f "pipeline.py" | head -1)
+        WM_PID=$(pgrep -f "watermark.py" | head -1)
+        if [ -n "$PARSER_PID" ]; then
+            PARSER_TIME=$(ps -o etime= -p $PARSER_PID 2>/dev/null | xargs)
+            echo -e "  Pipeline:  ${G}●${N} Работает (PID: $PARSER_PID, время: $PARSER_TIME)"
+        else
+            echo -e "  Pipeline:  ${R}○${N} Остановлен"
         fi
-        echo "---"
-        [ -f "$DATA_DIR/processed_ids.txt" ] && echo "Обработано: $(wc -l < "$DATA_DIR/processed_ids.txt") объявлений"
-        [ -f "$DATA_DIR/export.sql" ] && echo "SQL записей: $(grep -c 'INSERT' "$DATA_DIR/export.sql" 2>/dev/null || echo 0)"
-        echo "Превью: $(find "$DATA_DIR/images/preview/" -name '*.webp' 2>/dev/null | wc -l)"
-        echo "Фото: $(find "$DATA_DIR/images/images/" -name '*.webp' 2>/dev/null | wc -l)"
+        if [ -n "$WM_PID" ]; then
+            echo -e "  Watermark: ${G}●${N} Работает (PID: $WM_PID)"
+        else
+            echo -e "  Watermark: ${R}○${N} Остановлен"
+        fi
+        echo ""
+
+        # Текущая задача
+        echo -e "${G}▶ ТЕКУЩАЯ ЗАДАЧА${N}"
+        LOG_FILE="$DATA_DIR/logs/pipeline.log"
+        [ ! -f "$LOG_FILE" ] && LOG_FILE="$DATA_DIR/pipeline_v2.log"
+        if [ -f "$LOG_FILE" ]; then
+            CURRENT=$(grep -E '^\[URLs\]' "$LOG_FILE" 2>/dev/null | tail -1)
+            if [ -n "$CURRENT" ]; then
+                CITY=$(echo "$CURRENT" | grep -oP '^\[URLs\] \K[^/]+')
+                PROGRESS=$(echo "$CURRENT" | grep -oP '\[\d+/\d+\]')
+                CAT=$(echo "$CURRENT" | grep -oP '^\[URLs\] [^(]+' | sed 's/\[URLs\] //')
+                echo -e "  Город:     ${Y}$CITY${N}"
+                echo -e "  Категория: $CAT"
+                echo -e "  Прогресс:  ${B}$PROGRESS${N}"
+            fi
+        fi
+        echo ""
+
+        # Статистика объявлений
+        echo -e "${G}▶ ОБЪЯВЛЕНИЯ${N}"
+        PROCESSED=0
+        [ -f "$DATA_DIR/processed_ids.txt" ] && PROCESSED=$(wc -l < "$DATA_DIR/processed_ids.txt" | xargs)
+        SQL_V1=0
+        SQL_V2=0
+        SQL_RESTORED=0
+        [ -f "$DATA_DIR/export.sql" ] && SQL_V1=$(grep -c 'INSERT' "$DATA_DIR/export.sql" 2>/dev/null || echo 0)
+        [ -f "$DATA_DIR/export_v2.sql" ] && SQL_V2=$(grep -c 'INSERT' "$DATA_DIR/export_v2.sql" 2>/dev/null || echo 0)
+        [ -f "$DATA_DIR/export_restored.sql" ] && SQL_RESTORED=$(grep -c 'INSERT' "$DATA_DIR/export_restored.sql" 2>/dev/null || echo 0)
+        [ -f ~/ads-parser/export.sql ] && SQL_HOME=$(grep -c 'INSERT' ~/ads-parser/export.sql 2>/dev/null || echo 0)
+        TOTAL_SQL=$((SQL_RESTORED + SQL_V2))
+        [ $TOTAL_SQL -eq 0 ] && TOTAL_SQL=$((SQL_V1 + SQL_V2 + SQL_HOME))
+        echo -e "  Обработано ID:    ${B}$PROCESSED${N}"
+        echo -e "  SQL записей:      ${B}$TOTAL_SQL${N}"
+        [ $SQL_RESTORED -gt 0 ] && echo -e "    └─ restored:    $SQL_RESTORED"
+        [ $SQL_V2 -gt 0 ] && echo -e "    └─ v2 (текущий): $SQL_V2"
+        echo ""
+
+        # Изображения
+        echo -e "${G}▶ ИЗОБРАЖЕНИЯ${N}"
+        PREVIEW_COUNT=$(find "$DATA_DIR/images/preview/" -name '*.webp' 2>/dev/null | wc -l | xargs)
+        IMAGES_COUNT=$(find "$DATA_DIR/images/images/" -name '*.webp' 2>/dev/null | wc -l | xargs)
+        TOTAL_IMAGES=$((PREVIEW_COUNT + IMAGES_COUNT))
+        echo -e "  Превью:       ${B}$PREVIEW_COUNT${N}"
+        echo -e "  Полноразмер:  ${B}$IMAGES_COUNT${N}"
+        echo -e "  Всего:        ${B}$TOTAL_IMAGES${N}"
+        echo ""
+
+        # Водяные знаки
+        echo -e "${G}▶ ВОДЯНЫЕ ЗНАКИ${N}"
+        WM_COUNT=$(find "$DATA_DIR/images/preview/" -name '*.wm' 2>/dev/null | wc -l | xargs)
+        WM_PENDING=$((PREVIEW_COUNT - WM_COUNT))
+        if [ $WM_PENDING -le 0 ]; then
+            echo -e "  Обработано: ${G}$WM_COUNT / $PREVIEW_COUNT (100%)${N}"
+            echo -e "  Статус:     ${G}✓ Всё обработано${N}"
+        else
+            WM_PCT=$((WM_COUNT * 100 / PREVIEW_COUNT))
+            echo -e "  Обработано: ${Y}$WM_COUNT / $PREVIEW_COUNT ($WM_PCT%)${N}"
+            echo -e "  Ожидает:    ${Y}$WM_PENDING${N}"
+        fi
+        echo ""
+
+        # Размер данных
+        echo -e "${G}▶ РАЗМЕР ДАННЫХ${N}"
+        IMG_SIZE=$(du -sh "$DATA_DIR/images/" 2>/dev/null | cut -f1)
+        SQL_SIZE=$(du -sh "$DATA_DIR"/*.sql ~/ads-parser/*.sql 2>/dev/null | awk '{sum+=$1} END {print sum}' || echo "?")
+        TOTAL_SIZE=$(du -sh "$DATA_DIR" 2>/dev/null | cut -f1)
+        echo -e "  Изображения: ${B}$IMG_SIZE${N}"
+        echo -e "  Всего:       ${B}$TOTAL_SIZE${N}"
+        DISK_INFO=$(df -h "$DATA_DIR" 2>/dev/null | tail -1 | awk '{print "  Диск: " $3 " / " $2 " (" $5 " занято)"}')
+        echo -e "$DISK_INFO"
+        echo ""
+
+        # Последние записи лога
+        echo -e "${G}▶ ПОСЛЕДНИЕ СОБЫТИЯ${N}"
+        if [ -f "$LOG_FILE" ]; then
+            tail -5 "$LOG_FILE" | sed 's/^/  /'
+        else
+            echo "  (лог не найден)"
+        fi
+        echo ""
         ;;
     health)
         "$INSTALL_DIR/deploy/healthcheck.sh"
