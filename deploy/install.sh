@@ -304,13 +304,16 @@ case "$1" in
         echo -e "${G}▶ ТЕКУЩАЯ ЗАДАЧА${N}"
         LOG_FILE="$DATA_DIR/logs/pipeline.log"
         [ ! -f "$LOG_FILE" ] && LOG_FILE="$DATA_DIR/pipeline_v2.log"
+        # Все города в порядке обработки
+        ALL_CITIES="donetsk makeyevka gorlovka mariupol yenakievo kramatorsk slavyansk konstantinovka druzhkovka krasnoarmeysk dimitrov torez snezhnoe shahtersk khartsyzsk yasinovataya avdeevka dokuchaevsk volnovaha lugansk alchevsk krasnyy-luch severodonetsk lisichansk stahanov kommunarsk rubezhnoye sverdlovsk krasnodon bryanka pervomaysk rovenki molodogvardeysk zaporozhe melitopol berdyansk energodar tokmak vasilievka primorsk gulyaypole pologi orehov kherson kakhovka skadovsk genichesk novaya-kahovka berislav golaya-pristan chjornobayevka"
         TOTAL_CITIES=51
         # Проверяем skip-cities из запущенного процесса
         SKIP_LIST=$(ps aux 2>/dev/null | grep 'pipeline.py' | grep -v grep | grep -o '\-\-skip-cities [^ ]*' | head -1 | cut -d' ' -f2)
+        SKIPPED_COUNT=0
         if [ -n "$SKIP_LIST" ]; then
-            SKIPPED=$(echo "$SKIP_LIST" | tr ',' '\n' | wc -l)
-            TOTAL_CITIES=$((51 - SKIPPED))
+            SKIPPED_COUNT=$(echo "$SKIP_LIST" | tr ',' '\n' | wc -l)
         fi
+        CITIES_TO_PROCESS=$((TOTAL_CITIES - SKIPPED_COUNT))
         if [ -f "$LOG_FILE" ]; then
             # Берём только строки с прогрессом [X/Y]
             CURRENT=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep -E '\[[0-9]+/[0-9]+\]' | tail -1)
@@ -318,10 +321,33 @@ case "$1" in
                 CITY=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1)
                 PROGRESS=$(echo "$CURRENT" | grep -o '\[[0-9]*/[0-9]*\]')
                 CAT=$(echo "$CURRENT" | sed 's/\[URLs\] //' | sed 's/SKIP //' | sed 's/ (р-н.*//')
-                # Подсчёт уникальных городов (только строки с прогрессом)
-                CITY_NUM=$(grep '^\[URLs\]' "$LOG_FILE" 2>/dev/null | grep -E '\[[0-9]+/[0-9]+\]' | sed 's/\[URLs\] //' | sed 's/SKIP //' | cut -d'/' -f1 | sort -u | wc -l)
-                REMAINING=$((TOTAL_CITIES - CITY_NUM))
-                echo -e "  Город:     ${Y}${B}$CITY${N} [$CITY_NUM/$TOTAL_CITIES] (осталось: $REMAINING)"
+                # Считаем оставшиеся города
+                REMAINING=0
+                FOUND_CURRENT=0
+                for c in $ALL_CITIES; do
+                    if [ -n "$SKIP_LIST" ] && echo "$SKIP_LIST" | tr ',' '\n' | grep -q "^${c}$"; then
+                        continue
+                    fi
+                    if [ "$c" = "$CITY" ]; then
+                        FOUND_CURRENT=1
+                        continue
+                    fi
+                    if [ "$FOUND_CURRENT" = "1" ]; then
+                        REMAINING=$((REMAINING + 1))
+                    fi
+                done
+                # Считаем номер текущего города
+                CITY_NUM=0
+                for c in $ALL_CITIES; do
+                    if [ -n "$SKIP_LIST" ] && echo "$SKIP_LIST" | tr ',' '\n' | grep -q "^${c}$"; then
+                        continue
+                    fi
+                    CITY_NUM=$((CITY_NUM + 1))
+                    if [ "$c" = "$CITY" ]; then
+                        break
+                    fi
+                done
+                echo -e "  Город:     ${Y}${B}$CITY${N} [$CITY_NUM/$CITIES_TO_PROCESS] (осталось: $REMAINING)"
                 echo -e "  Категория: $CAT"
                 echo -e "  Прогресс:  ${B}$PROGRESS${N}"
             fi
