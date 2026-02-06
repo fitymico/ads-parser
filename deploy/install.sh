@@ -394,6 +394,52 @@ case "$1" in
         cp "$DATA_DIR/image_map.json" "$BACKUP/" 2>/dev/null
         echo "✓ Бэкап: $BACKUP"
         ;;
+    uninstall)
+        echo ""
+        echo -e "\033[0;31m╔══════════════════════════════════════════════════════════════╗\033[0m"
+        echo -e "\033[0;31m║                  ADS-PARSER UNINSTALL                        ║\033[0m"
+        echo -e "\033[0;31m╚══════════════════════════════════════════════════════════════╝\033[0m"
+        echo ""
+        read -p "Удалить ads-parser полностью? [y/N] " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Отменено"
+            exit 0
+        fi
+        read -p "Сохранить данные ($DATA_DIR)? [Y/n] " -n 1 -r
+        echo ""
+        KEEP_DATA=1
+        [[ $REPLY =~ ^[Nn]$ ]] && KEEP_DATA=0
+
+        echo "[+] Остановка процессов..."
+        pkill -9 -f "pipeline.py" 2>/dev/null || true
+        pkill -9 -f "watermark.py" 2>/dev/null || true
+
+        echo "[+] Удаление systemd сервисов..."
+        sudo systemctl stop ads-parser ads-watermark ads-healthcheck.timer 2>/dev/null || true
+        sudo systemctl disable ads-parser ads-watermark ads-healthcheck.timer 2>/dev/null || true
+        sudo rm -f /etc/systemd/system/ads-parser.service
+        sudo rm -f /etc/systemd/system/ads-watermark.service
+        sudo rm -f /etc/systemd/system/ads-healthcheck.service
+        sudo rm -f /etc/systemd/system/ads-healthcheck.timer
+        sudo systemctl daemon-reload 2>/dev/null || true
+
+        echo "[+] Удаление $INSTALL_DIR..."
+        sudo rm -rf "$INSTALL_DIR"
+
+        if [ "$KEEP_DATA" = "0" ]; then
+            echo "[+] Удаление $DATA_DIR..."
+            sudo rm -rf "$DATA_DIR"
+        else
+            echo "[!] Данные сохранены: $DATA_DIR"
+        fi
+
+        echo "[+] Удаление CLI..."
+        sudo rm -f /usr/local/bin/ads-parser
+
+        echo ""
+        echo "✓ ads-parser удалён"
+        ;;
     *)
         echo "ads-parser - управление парсером объявлений"
         echo ""
@@ -409,6 +455,7 @@ case "$1" in
         echo "  monitor   Live мониторинг"
         echo "  health    Проверка здоровья"
         echo "  backup    Создать бэкап"
+        echo "  uninstall Полное удаление"
         exit 1
         ;;
 esac
