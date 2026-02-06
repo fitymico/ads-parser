@@ -324,6 +324,7 @@ case "$1" in
         SQL_V1=0
         SQL_V2=0
         SQL_RESTORED=0
+        SQL_HOME=0
         [ -f "$DATA_DIR/export.sql" ] && SQL_V1=$(grep -c 'INSERT' "$DATA_DIR/export.sql" 2>/dev/null || echo 0)
         [ -f "$DATA_DIR/export_v2.sql" ] && SQL_V2=$(grep -c 'INSERT' "$DATA_DIR/export_v2.sql" 2>/dev/null || echo 0)
         [ -f "$DATA_DIR/export_restored.sql" ] && SQL_RESTORED=$(grep -c 'INSERT' "$DATA_DIR/export_restored.sql" 2>/dev/null || echo 0)
